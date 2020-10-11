@@ -63,6 +63,7 @@ Thread.new do
   loop do
     sleep 300
     if $apps_array.length() > 0 then
+      apps_to_delete = []
       $apps_array.each do |app|
         app_text = app.make_the_request
         if app_text != nil and app_text != app.app_message then
@@ -72,7 +73,16 @@ Thread.new do
           message.chat = channel
           message.text = app_text
           message.send_with(bot)
+          if app.app_message.include? "заблокировано" then
+            apps_to_delete.push(app)
+          end
         end
+      end
+      if apps_to_delete.length() > 0 then
+        apps_to_delete.each do |app|
+          $apps_array.delete(app)
+        end
+        apps_to_delete.clear()
       end
     end
   end
@@ -88,7 +98,7 @@ bot.get_updates(fail_silently: true) do |message|
   message.reply do |reply|
     case command
     when /start/i
-      reply.text = "Здравствуйте! Я помогу вам узнать статус вашего приложения в Play Market. Введите package name приложения в формате com.company.app. Используйте команду /apps для вывода списка приложений."
+      reply.text = "Здравствуйте! Я помогу вам узнать статус вашего приложения в Play Market. Введите package name приложения в формате com.company.app. Используйте команду /help для вывода списка команд."
     when /apps/i
       reply.text = "Список приложений:\n"
       if $apps_array.length() > 0 then
@@ -96,6 +106,11 @@ bot.get_updates(fail_silently: true) do |message|
           reply.text += app.app_name + " - " + app.make_the_request + "\n"
         end
       end
+    when /clear/i
+      $apps_array.clear()
+      reply.text = "Список приложений очищен."
+    when /help/i
+      reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\ncom.company.app - узнать информацию о приложении с package name com.company.name."
     else
       app = App.new (command)
       reply.text = app.make_the_request
