@@ -56,7 +56,8 @@ class App
 end
 
 token = '1324909471:AAF5loszIwzSQIUM_6rPzvXcXMfvS17Kpuc'
-saved_chat_id = 0
+saved_chat_ids = [] #список чатов для отправки сообщений
+saved_chat_ids.push(-482588381)
 bot = TelegramBot.new(token: token)
 
 Thread.new do
@@ -68,11 +69,13 @@ Thread.new do
         app_text = app.make_the_request
         if app_text != nil and app_text != app.app_message then
           app.app_message = app_text
-          channel = TelegramBot::Channel.new(id: saved_chat_id)
-          message = TelegramBot::OutMessage.new
-          message.chat = channel
-          message.text = app_text
-          message.send_with(bot)
+          saved_chat_ids.each do |saved_chat_id|
+            channel = TelegramBot::Channel.new(id: saved_chat_id)
+            message = TelegramBot::OutMessage.new
+            message.chat = channel
+            message.text = app_text
+            message.send_with(bot)
+          end
           if app.app_message.include? "заблокировано" then
             apps_to_delete.push(app)
           end
@@ -90,7 +93,9 @@ end
 
 bot.get_updates(fail_silently: true) do |message|
 
-  saved_chat_id = message.chat.id
+  unless saved_chat_ids.include?(message.chat.id)
+    saved_chat_ids.push(message.chat.id)
+  end
 
   puts "@#{message.from.username}: #{message.text}"
   command = message.get_command_for(bot)
@@ -100,17 +105,28 @@ bot.get_updates(fail_silently: true) do |message|
     when /start/i
       reply.text = "Здравствуйте! Я помогу вам узнать статус вашего приложения в Play Market. Введите package name приложения в формате com.company.app. Используйте команду /help для вывода списка команд."
     when /apps/i
-      reply.text = "Список приложений:\n"
       if $apps_array.length() > 0 then
+        reply.text = "Список приложений:\n"
         $apps_array.each do |app|
           reply.text += app.app_name + " - " + app.make_the_request + "\n"
         end
+      else
+        reply.text = "Список приложений пуст."
       end
     when /clear/i
       $apps_array.clear()
       reply.text = "Список приложений очищен."
     when /help/i
-      reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\ncom.company.app - узнать информацию о приложении с package name com.company.name."
+      reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\n/delete com.company.app - удалить приложение com.company.app из списка приложений.\ncom.company.app - узнать информацию о приложении с package name com.company.name."
+    when /delete/i
+      tmp_string = command[8, command.length()]
+      tmp_app = $apps_array.detect {|app| app.app_name == tmp_string }
+      if $apps_array.include?(tmp_app) then
+        $apps_array.delete(tmp_app)
+        reply.text = "Приложение #{tmp_string} удалено из списка приложений."
+      else
+        reply.text = "Приложение #{tmp_string} не найдено в списке приложений."
+      end
     else
       app = App.new (command)
       reply.text = app.make_the_request
