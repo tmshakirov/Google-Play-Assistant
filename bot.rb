@@ -4,6 +4,7 @@ require 'timeout'
 require 'thread'
 
 $apps_array = [] # массив приложений
+$saved_chat_ids = [] #список чатов для отправки сообщений
 
 class App
   app_state = 0 #0 - не вышло, 1 - вышло, 2 - забанили
@@ -18,11 +19,13 @@ class App
     @app_name = package_name
     @app_message = ""
     counter = 0
-    package_name.split('').each { |c|
-      if c == '.' then
-        counter += 1
-      end
-    }
+    unless package_name.nil?
+      package_name.split('').each { |c|
+        if c == '.' then
+          counter += 1
+        end
+      }
+    end
     if counter == 2 then
       begin
         @link = 'https://play.google.com/store/apps/details?id=' + package_name
@@ -55,9 +58,8 @@ class App
   end
 end
 
-token = '1324909471:AAF5loszIwzSQIUM_6rPzvXcXMfvS17Kpuc'
-saved_chat_ids = [] #список чатов для отправки сообщений
-saved_chat_ids.push(-482588381)
+token = '1324909471:AAFHEPgOpWBBPUyaW-UIFy6x_OxEVRLIiog'
+$saved_chat_ids.push(-1001487026328)
 bot = TelegramBot.new(token: token)
 
 Thread.new do
@@ -69,7 +71,7 @@ Thread.new do
         app_text = app.make_the_request
         if app_text != nil and app_text != app.app_message then
           app.app_message = app_text
-          saved_chat_ids.each do |saved_chat_id|
+          $saved_chat_ids.each do |saved_chat_id|
             channel = TelegramBot::Channel.new(id: saved_chat_id)
             message = TelegramBot::OutMessage.new
             message.chat = channel
@@ -93,8 +95,8 @@ end
 
 bot.get_updates(fail_silently: true) do |message|
 
-  unless saved_chat_ids.include?(message.chat.id)
-    saved_chat_ids.push(message.chat.id)
+  unless $saved_chat_ids.include?(message.chat.id)
+    $saved_chat_ids.push(message.chat.id)
   end
 
   puts "@#{message.from.username}: #{message.text}"
