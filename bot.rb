@@ -130,9 +130,11 @@ bot.get_updates(fail_silently: true) do |message|
         reply.text = "Приложение #{tmp_string} не найдено в списке приложений."
       end
     else
-      app = App.new (command)
-      reply.text = app.make_the_request
-      app.app_message = reply.text
+      unless command.to_s.strip.empty?
+        app = App.new (command)
+        reply.text = app.make_the_request
+        app.app_message = reply.text
+      end
     end
     puts "sending #{reply.text.inspect} to @#{message.from.username}"
     reply.send_with(bot)
