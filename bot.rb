@@ -93,6 +93,13 @@ Thread.new do
   end
 end
 
+def language_keyboard
+  { inline_keyboard: [
+      [{text: t('language.english'), callback_data: 'language:en'},
+       {text: t('language.russian'), callback_data: 'language:ru'},]
+  ]}
+end
+
 bot.get_updates(fail_silently: true) do |message|
 
   unless $saved_chat_ids.include?(message.chat.id)
@@ -142,22 +149,5 @@ bot.get_updates(fail_silently: true) do |message|
     unless reply.nil?
       reply.send_with(bot)
     end
-  end
-end
-
-bot.listen do |message|
-  case message
-  when Telegram::Bot::Types::CallbackQuery
-    if message.data == 'touch'
-      bot.api.send_message(chat_id: message.from.id, text: "Don't touch me!")
-    end
-  when Telegram::Bot::Types::Message
-    kb = [
-      Telegram::Bot::Types::InlineKeyboardButton.new(text: 'Go to Google', url: 'https://google.com'),
-      Telegram::Bot::Types::InlineKeyboardButton.new(text: 'Touch me', callback_data: 'touch'),
-      Telegram::Bot::Types::InlineKeyboardButton.new(text: 'Switch to inline', switch_inline_query: 'some text')
-    ]
-    markup = Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: kb)
-    bot.api.send_message(chat_id: message.chat.id, text: 'Make a choice', reply_markup: markup)
   end
 end
