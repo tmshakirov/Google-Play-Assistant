@@ -119,7 +119,7 @@ bot.get_updates(fail_silently: true) do |message|
       $apps_array.clear()
       reply.text = "Список приложений очищен."
     when /help/i
-      reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\n/delete com.company.app - удалить приложение com.company.app из списка приложений.\ncom.company.app - узнать информацию о приложении с package name com.company.name."
+      reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\n/delete com.company.app - удалить приложение com.company.app из списка приложений.\ncom.company.app - узнать статус приложения с package name com.company.app."
     when /delete/i
       tmp_string = command[8, command.length()]
       tmp_app = $apps_array.detect {|app| app.app_name == tmp_string }
@@ -142,5 +142,22 @@ bot.get_updates(fail_silently: true) do |message|
     unless reply.nil?
       reply.send_with(bot)
     end
+  end
+end
+
+bot.listen do |message|
+  case message
+  when Telegram::Bot::Types::CallbackQuery
+    if message.data == 'touch'
+      bot.api.send_message(chat_id: message.from.id, text: "Don't touch me!")
+    end
+  when Telegram::Bot::Types::Message
+    kb = [
+      Telegram::Bot::Types::InlineKeyboardButton.new(text: 'Go to Google', url: 'https://google.com'),
+      Telegram::Bot::Types::InlineKeyboardButton.new(text: 'Touch me', callback_data: 'touch'),
+      Telegram::Bot::Types::InlineKeyboardButton.new(text: 'Switch to inline', switch_inline_query: 'some text')
+    ]
+    markup = Telegram::Bot::Types::InlineKeyboardMarkup.new(inline_keyboard: kb)
+    bot.api.send_message(chat_id: message.chat.id, text: 'Make a choice', reply_markup: markup)
   end
 end
