@@ -65,29 +65,31 @@ bot = TelegramBot.new(token: token)
 Thread.new do
   loop do
     sleep 300
-    if $apps_array.length() > 0 then
-      apps_to_delete = []
-      $apps_array.each do |app|
-        app_text = app.make_the_request
-        if app_text != nil and app_text != app.app_message then
-          app.app_message = app_text
-          $saved_chat_ids.each do |saved_chat_id|
-            channel = TelegramBot::Channel.new(id: saved_chat_id)
-            message = TelegramBot::OutMessage.new
-            message.chat = channel
-            message.text = app_text
-            message.send_with(bot)
-          end
-          if app.app_message.include? "заблокировано" then
-            apps_to_delete.push(app)
+    unless $apps_array.nil?
+      if $apps_array.length() > 0 then
+        apps_to_delete = []
+        $apps_array.each do |app|
+          app_text = app.make_the_request
+          if app_text != nil and app_text != app.app_message then
+            app.app_message = app_text
+            $saved_chat_ids.each do |saved_chat_id|
+              channel = TelegramBot::Channel.new(id: saved_chat_id)
+              message = TelegramBot::OutMessage.new
+              message.chat = channel
+              message.text = app_text
+              message.send_with(bot)
+            end
+            if app.app_message.include? "заблокировано" then
+              apps_to_delete.push(app)
+            end
           end
         end
-      end
-      if apps_to_delete.length() > 0 then
-        apps_to_delete.each do |app|
-          $apps_array.delete(app)
+        if apps_to_delete.length() > 0 then
+          apps_to_delete.each do |app|
+            $apps_array.delete(app)
+          end
+          apps_to_delete.clear()
         end
-        apps_to_delete.clear()
       end
     end
   end
@@ -108,46 +110,47 @@ bot.get_updates(fail_silently: true) do |message|
 
   puts "@#{message.from.username}: #{message.text}"
   command = message.get_command_for(bot)
-
-  message.reply do |reply|
-    case command
-    when /start/i
-      reply.text = "Здравствуйте! Я помогу вам узнать статус вашего приложения в Play Market. Введите package name приложения в формате com.company.app. Используйте команду /help для вывода списка команд."
-    when /apps/i
-      if $apps_array.length() > 0 then
-        reply.text = "Список приложений:\n"
-        $apps_array.each do |app|
-          reply.text += app.app_name + " - " + app.make_the_request + "\n"
+  unless message.text.to_s.strip.empty?
+    message.reply do |reply|
+      case command
+      when /start/i
+        reply.text = "Здравствуйте! Я помогу вам узнать статус вашего приложения в Play Market. Введите package name приложения в формате com.company.app. Используйте команду /help для вывода списка команд."
+      when /apps/i
+        if $apps_array.length() > 0 then
+          reply.text = "Список приложений:\n"
+          $apps_array.each do |app|
+            reply.text += app.app_name + " - " + app.make_the_request + "\n"
+          end
+        else
+          reply.text = "Список приложений пуст."
+        end
+      when /clear/i
+        $apps_array.clear()
+        reply.text = "Список приложений очищен."
+      when /help/i
+        reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\n/delete com.company.app - удалить приложение com.company.app из списка приложений.\ncom.company.app - узнать статус приложения с package name com.company.app."
+      when /delete/i
+        tmp_string = command[8, command.length()]
+        tmp_app = $apps_array.detect {|app| app.app_name == tmp_string }
+        if $apps_array.include?(tmp_app) then
+          $apps_array.delete(tmp_app)
+          reply.text = "Приложение #{tmp_string} удалено из списка приложений."
+        else
+          reply.text = "Приложение #{tmp_string} не найдено в списке приложений."
         end
       else
-        reply.text = "Список приложений пуст."
-      end
-    when /clear/i
-      $apps_array.clear()
-      reply.text = "Список приложений очищен."
-    when /help/i
-      reply.text = "Список команд:\n/apps - список приложений.\n/clear - очистить список приложений.\n/delete com.company.app - удалить приложение com.company.app из списка приложений.\ncom.company.app - узнать статус приложения с package name com.company.app."
-    when /delete/i
-      tmp_string = command[8, command.length()]
-      tmp_app = $apps_array.detect {|app| app.app_name == tmp_string }
-      if $apps_array.include?(tmp_app) then
-        $apps_array.delete(tmp_app)
-        reply.text = "Приложение #{tmp_string} удалено из списка приложений."
-      else
-        reply.text = "Приложение #{tmp_string} не найдено в списке приложений."
-      end
-    else
-      unless command.nil?
-        unless command.to_s.strip.empty?
-          app = App.new (command)
-          reply.text = app.make_the_request
-          app.app_message = reply.text
+        unless command.nil?
+          unless command.to_s.strip.empty?
+            app = App.new (command)
+            reply.text = app.make_the_request
+            app.app_message = reply.text
+          end
         end
       end
-    end
-    puts "sending #{reply.text.inspect} to @#{message.from.username}"
-    unless reply.nil?
-      reply.send_with(bot)
+      puts "sending #{reply.text.inspect} to @#{message.from.username}"
+      unless reply.nil? and reply.text.inspect.nil?
+        reply.send_with(bot)
+      end
     end
   end
 end
