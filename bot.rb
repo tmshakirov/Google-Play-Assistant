@@ -11,7 +11,7 @@ class App
   app_name = "none"
   app_message = ""
 
-  attr_reader :app_name
+  attr_accessor :app_name
   attr_reader :app_state
   attr_accessor :app_message
 
@@ -138,12 +138,39 @@ bot.get_updates(fail_silently: true) do |message|
         else
           reply.text = "Приложение #{tmp_string} не найдено в списке приложений."
         end
+      when /setname/i
+        tmp_array = command.split("\s")
+        tmp_string = tmp_array[1]
+        tmp_name = ""
+        if tmp_array.length >= 3 then
+          for i in (2..tmp_array.length())
+            unless tmp_array[i].nil?
+              if i < (tmp_array.length()-1)
+                tmp_array[i].concat(" ")
+              end
+              tmp_name.concat(tmp_array[i])
+            end
+          end
+          tmp_app = $apps_array.detect {|app| app.app_name == tmp_string }
+          if $apps_array.include?(tmp_app) then
+            tmp_app.app_name = tmp_name
+            reply.text = "Приложение #{tmp_string} теперь имеет название #{tmp_app.app_name}."
+          else
+            reply.text = "Приложение #{tmp_string} не найдено в списке приложений."
+          end
+        else
+          reply.text = "Неверный формат! Команда должна иметь формат /setname com.company.app [Название приложения]."
+        end
       else
         unless command.nil?
           unless command.to_s.strip.empty?
-            app = App.new (command)
-            reply.text = app.make_the_request
-            app.app_message = reply.text
+            if $apps_array.include?(command) then
+              reply.text = "Приложение #{command} уже существует."
+            else
+              app = App.new (command)
+              reply.text = app.make_the_request
+              app.app_message = reply.text
+            end
           end
         end
       end
